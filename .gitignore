@@ -1,0 +1,16 @@
+# Large artefacts: never commit
+data/
+checkpoints/
+assets/
+wandb/
+*.mcap
+*.db3
+
+# Python
+__pycache__/
+*.egg-info/
+.venv/
+.pytest_cache/
+
+# Local machine config
+.env

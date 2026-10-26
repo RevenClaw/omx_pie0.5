@@ -1,0 +1,14 @@
+[project]
+name = "omx_pi05"
+version = "0.0.1"
+description = "OpenMANIPULATOR-X integration for openpi pi0.5 (policy transforms, data/train configs)"
+requires-python = ">=3.11"
+# No dependencies on purpose: installed into openpi's uv env, which provides jax/openpi/lerobot.
+dependencies = []
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["omx_pi05"]
