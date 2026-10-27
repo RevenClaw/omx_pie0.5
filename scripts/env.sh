@@ -13,6 +13,9 @@ fi
 # Where openpi caches checkpoints (pi05_base is several GB). Put it on a big disk.
 export OPENPI_DATA_HOME="${OPENPI_DATA_HOME:-$HOME/.cache/openpi}"
 
+# Port of the policy websocket server (8000, openpi's default, is taken on the A30 server).
+export VLA_POLICY_PORT="${VLA_POLICY_PORT:-4000}"
+
 # Let JAX use 90% of GPU memory instead of the default 75% (needed for LoRA on 24 GB).
 export XLA_PYTHON_CLIENT_MEM_FRACTION="${XLA_PYTHON_CLIENT_MEM_FRACTION:-0.9}"
 

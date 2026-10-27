@@ -19,6 +19,7 @@ against openpi. Log every training/eval run in `docs/experiments.md`. Keep both 
   the `lerobot.common.datasets` module path). `source scripts/env.sh` activates it and sets `OPENPI_DATA_HOME` and
   `XLA_PYTHON_CLIENT_MEM_FRACTION=0.9`.
 - `uv sync` in openpi **removes `omx_pi05`** from the venv. Re-run `scripts/setup_server.sh` (or `uv pip install -e .` from the repo root) afterwards.
+- Policy server port is **4000** (`VLA_POLICY_PORT` in `env.sh`/`.env`), not openpi's default 8000, which is taken on the server.
 - Run `scripts/gpu_check.sh train|serve` before any GPU job. Another user's process has held 21.6 GB before.
 - Train inside `tmux`, headless.
 

@@ -1,6 +1,6 @@
 """Phase 1: measure policy-server latency from wherever this runs (the server itself, or the robot PC).
 
-    python scripts/latency_probe.py                         # DROID-shaped obs → localhost:8000
+    python scripts/latency_probe.py                         # DROID-shaped obs → localhost:$VLA_POLICY_PORT (4000)
     python scripts/latency_probe.py --host 10.0.0.5 -n 200  # from the robot PC
     python scripts/latency_probe.py --env omx               # OM-X-shaped obs (Phase 2+, our own server)
 
@@ -9,6 +9,7 @@ Splits each call into model time (policy_timing), server overhead and network/se
 """
 
 import argparse
+import os
 import sys
 import time
 
@@ -55,7 +56,7 @@ def pct(xs: list[float]) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--host", default="localhost")
-    parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--port", type=int, default=int(os.environ.get("VLA_POLICY_PORT", 4000)), help="default: $VLA_POLICY_PORT or 4000")
     parser.add_argument("--env", choices=["droid", "libero", "omx"], default="droid")
     parser.add_argument("-n", type=int, default=100, help="timed calls")
     parser.add_argument("--warmup", type=int, default=5, help="untimed calls first (JIT compile happens on call 1)")

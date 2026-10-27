@@ -20,7 +20,7 @@ These are fixed for v1. If you change one, record it here, because most of them 
 | # | Decision | Value | Why |
 |---|---|---|---|
 | D1 | Framework | **openpi (JAX), LoRA fine-tune of `pi05_base`** | It is the only π0.5 training route that fits 24 GB. openpi PyTorch has no LoRA, full fine-tuning needs more than 70 GB, and LeRobot `pi05` needs expert-only training on 24 GB. |
-| D2 | Serving | openpi `serve_policy`-style websocket server on the A30, port 8000 | Keeps the model separate from ROS. The robot PC runs only `openpi-client`. |
+| D2 | Serving | openpi `serve_policy`-style websocket server on the A30, **port 4000** (`VLA_POLICY_PORT`; openpi's default 8000 is taken on the server) | Keeps the model separate from ROS. The robot PC runs only `openpi-client`. |
 | D3 | Robot interface | New `vla_bridge` node in `low_level_controller/custom_package` → `/arm_controller/joint_trajectory` + `/gripper_controller/gripper_cmd` | The ROS-side design already recorded in `low_level_controller/CLAUDE.md`. No MoveIt and no `/ee_goal` in the streaming path. |
 | D4 | Action space | Joint space, 5-D: `[j1, j2, j3, j4, gripper]`. Joints are absolute radians in the dataset and trained as **deltas** (`DeltaActions(make_bool_mask(4, -1))`). The gripper stays **absolute**. | A 4-DoF arm can't follow arbitrary EE poses, and IK in the loop adds failure modes. This follows the openpi ALOHA pattern. |
 | D5 | State | 5-D: `[j1..j4 rad, gripper_norm]` from `/joint_states` | Same layout as the action |
@@ -121,8 +121,8 @@ This checks the plumbing only. Released checkpoints don't know OM-X, so their ac
 | Task | Detail |
 |---|---|
 | T1.1 | `serve_pretrained.sh`: `uv run scripts/serve_policy.py --env=DROID` (or `policy:checkpoint --policy.config=pi05_droid --policy.dir=gs://openpi-assets/checkpoints/pi05_droid`). Watch `nvidia-smi`: memory use should be about 8–10 GB. |
-| T1.2 | `latency_probe.py`: build a dummy DROID-shaped observation, call `WebsocketClientPolicy(host, 8000).infer()` 100 times, and print p50/p95/p99 latency. Run it **on the server** (model time) and **from the robot PC** (model plus network). |
-| T1.3 | Network: if port 8000 isn't reachable from the robot PC, use an SSH tunnel (`ssh -N -L 8000:localhost:8000 user@server`). Record which one you use in `README.md`. |
+| T1.2 | `latency_probe.py`: build a dummy DROID-shaped observation, call `WebsocketClientPolicy(host, $VLA_POLICY_PORT).infer()` 100 times, and print p50/p95/p99 latency. Run it **on the server** (model time) and **from the robot PC** (model plus network). |
+| T1.3 | Network: if port 4000 isn't reachable from the robot PC, use an SSH tunnel (`ssh -N -L 4000:localhost:4000 user@server`). Record which one you use in `README.md`. |
 | T1.4 | (Optional) LIBERO sim eval with `pi05_libero`, following `third_party/openpi/examples/libero` (headless MuJoCo/EGL on the server). Confirms the install against the published numbers. |
 | T1.5 | Install `openpi-client` in the ROS container (`pip install -e third_party/openpi/packages/openpi-client`; it needs only numpy, msgpack and websockets) and run `latency_probe.py` from there. |
 
@@ -139,7 +139,7 @@ This builds and tests the whole openpi pipeline before any real data exists, so 
 | T2.3 | `policy.py`: **`OMXInputs`** maps `observation/front_image` → `base_0_rgb`, `observation/wrist_image` → `left_wrist_0_rgb`, and fills `right_wrist_0_rgb` with zeros. Image masks are front True, wrist True, right False. It passes through `state` (5,), `actions` when present, and `prompt`. It reuses `_parse_image` behaviour (float → uint8, CHW → HWC). **`OMXOutputs`** returns `actions[:, :5]`. `make_omx_example()` returns a random observation for tests. |
 | T2.4 | `data_config.py`: `LeRobotOMXDataConfig(DataConfigFactory)`. The repack maps dataset keys `observation.images.front`, `observation.images.wrist`, `observation.state`, `action`, `prompt` → policy keys. Data transforms are `OMXInputs`/`OMXOutputs`, plus `DeltaActions(make_bool_mask(4, -1))` on inputs and `AbsoluteActions(...)` on outputs. Model transforms come from `ModelTransformFactory()(model_config)`. Uses `prompt_from_task=True`. |
 | T2.5 | `train_configs.py`: **`pi05_omx_lora`** with `model=Pi0Config(pi05=True, action_horizon=10, paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora")`, `freeze_filter=` that same config's `.get_freeze_filter()`, `ema_decay=None`, `weight_loader=CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_base/params")`, `batch_size=16`, `num_train_steps=30_000`, `save_interval=5_000`, `keep_period=5_000`, and the default cosine LR schedule (warmup 1k). Also add **`pi05_omx_lora_debug`**: 200 steps, batch 8, `save_interval=100`, wandb off. |
-| T2.6 | Wrapper scripts. `train.py` loads openpi's `scripts/train.py` as a module and calls `main(get_config(name))`. `compute_norm_stats.py` does the same with openpi's norm-stats routine. `serve.py` calls `openpi.policies.policy_config.create_trained_policy(cfg, ckpt_dir)` and runs it through `openpi.serving.websocket_policy_server.WebsocketPolicyServer(policy, port=8000)`. If upstream internals make this awkward, use the D14 fallback (fork branch). |
+| T2.6 | Wrapper scripts. `train.py` loads openpi's `scripts/train.py` as a module and calls `main(get_config(name))`. `compute_norm_stats.py` does the same with openpi's norm-stats routine. `serve.py` calls `openpi.policies.policy_config.create_trained_policy(cfg, ckpt_dir)` and runs it through `openpi.serving.websocket_policy_server.WebsocketPolicyServer(policy, port=$VLA_POLICY_PORT)`. If upstream internals make this awkward, use the D14 fallback (fork branch). |
 | T2.7 | `make_synthetic_dataset.py`: writes about 20 fake episodes (random 224×224 images, smooth sinusoidal joint trajectories within limits, gripper steps) **using openpi's pinned `lerobot`**, with the exact feature schema from Phase 4. |
 | T2.8 | Dry run: synthetic dataset → norm stats → `pi05_omx_lora_debug` training → `serve.py` → `latency_probe.py` with an OM-X-shaped observation, which must return a `(10, 5)` array. |
 | T2.9 | **Memory test on the A30** (`scripts/memory_test.py`: the real pi05_base LoRA model on openpi's FakeDataset, so it can run before T2.1–T2.8 exist): run `pi05_omx_lora` for 100–300 steps at batch 16 with `XLA_PYTHON_CLIENT_MEM_FRACTION=0.9`. Record peak memory and steps/s. Then try 32. If it runs out of memory, try 8, then raise the fraction to 0.95. Write the chosen batch size into the config. |
@@ -273,7 +273,7 @@ Phases 2 and 3 need no data and can run in parallel with the Phase 4 hardware wo
 ## 7. Open questions (answer before or during Phase 0)
 
 1. Server OS and whether you have `sudo` or Docker. This decides between plain `uv` and Docker.
-2. Is the robot PC on the same network as the A30 server? Is port 8000 reachable, or is an SSH tunnel needed?
+2. Is the robot PC on the same network as the A30 server? Is port 4000 reachable, or is an SSH tunnel needed?
 3. Is a second OM-X available as a leader arm? If not, GELLO or a gamepad.
 4. Which camera models, and how will the wrist camera be mounted?
 5. The first task and its exact prompt string.
