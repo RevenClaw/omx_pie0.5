@@ -9,7 +9,8 @@ Source material:
 - `../low_level_controller/CLAUDE.md` and `../low_level_controller/docs/` — the robot side
 - The openpi repository (`main`, checked 2026-10-26). See [Verified facts](#verified-facts-about-openpi-checked-2026-10-26).
 
-Status: **Phase 0 repo files written (2026-10-26). Server steps not yet run.** openpi pinned at `215abfb` (2026-08-24).
+Status (2026-10-27): **Phase 0 ✅, Phase 1 ✅ on the server (124 ms p95), T2.9 ✅ (batch 16 fits). Phase 2 code written, see
+`docs/phase2_report.md`; the server dry run (T2.8) is not yet done.** openpi pinned at `215abfb` (2026-08-24).
 
 ---
 

@@ -13,6 +13,9 @@ fi
 # Where openpi caches checkpoints (pi05_base is several GB). Put it on a big disk.
 export OPENPI_DATA_HOME="${OPENPI_DATA_HOME:-$HOME/.cache/openpi}"
 
+# Where LeRobot datasets live (openpi's pinned lerobot reads/writes $HF_LEROBOT_HOME/<repo_id>). Gitignored.
+export HF_LEROBOT_HOME="${HF_LEROBOT_HOME:-$VLA_ROOT/data/lerobot}"
+
 # Port of the policy websocket server (8000, openpi's default, is taken on the A30 server).
 export VLA_POLICY_PORT="${VLA_POLICY_PORT:-4000}"
 

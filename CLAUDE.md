@@ -6,12 +6,17 @@ The robot side (ROS 2 Jazzy, `arm_controller`, the planned `vla_bridge` node) li
 (read its `CLAUDE.md` for robot facts: joint limits, gripper units, home pose).
 
 Read `docs/IMPLEMENTATION_PLAN.md` first. It holds the decisions (D1–D14), the phases with exit criteria, and the facts verified
-against openpi. Log every training/eval run in `docs/experiments.md`. Keep both updated when behaviour changes.
+against openpi. Log every training/eval run in `docs/experiments.md`. Postponed work (e.g. lowering latency) is in
+`docs/FUTURE_TODO.md`. Keep all of them updated when behaviour changes.
 
 ## Layout
 - `third_party/openpi/` — **git submodule, pinned commit. Never edit it** (D14). If our wrappers can't reach something, use a fork branch.
-- `omx_pi05/` — our package (OM-X policy transforms, data/train configs), installed editable into openpi's venv.
-- `scripts/` — `env.sh` (source first), `setup_server.sh`, `gpu_check.sh`, `download_checkpoints.py`, `verify_env.py`; later phases add more.
+- `omx_pi05/` — our package, installed editable into openpi's venv: `constants.py` (robot facts, cited to low_level_controller;
+  `tests/test_constants_match_robot.py` checks them), `gripper.py`, `kinematics.py`, `policy.py` (OMXInputs/OMXOutputs),
+  `data_config.py`, `train_configs.py` (configs registered into openpi's registry; add real datasets to `DATASETS`).
+- `scripts/` — `env.sh` (source first), setup/check scripts, `latency_probe.py`, `memory_test.py`, `make_synthetic_dataset.py`,
+  wrappers `compute_norm_stats.py` / `train.py` / `serve.py` (call openpi's own scripts), `fake_policy_server.py` (no GPU).
+- `docs/phase2_report.md` — what Phase 2 built, which robot facts are real and what is faked.
 - `data/`, `checkpoints/` — gitignored.
 
 ## Environment
