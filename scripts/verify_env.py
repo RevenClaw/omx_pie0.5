@@ -13,6 +13,10 @@ import subprocess
 import sys
 
 REQUIRED_FREE_DISK_GB = 150
+
+# The GPU checks below need only a few MB. Without this, JAX would reserve XLA_PYTHON_CLIENT_MEM_FRACTION (90%)
+# of GPU memory at import and fail when another job is using the shared A30. Must be set before jax is imported.
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 results: list[tuple[str, str, str]] = []  # (name, "ok" | "fail" | "warn", detail)
 
 
@@ -33,6 +37,14 @@ def _():
     v = sys.version_info
     in_venv = "third_party/openpi/.venv" in sys.prefix
     return v >= (3, 11) and in_venv, f"{v.major}.{v.minor}.{v.micro} at {sys.prefix}"
+
+
+# Runs before any JAX check: once this process has imported JAX, its own allocation would count as "used".
+@check("GPU free for training (gpu_check.sh train)", required=False)
+def _():
+    script = pathlib.Path(__file__).with_name("gpu_check.sh")
+    r = subprocess.run(["bash", str(script), "train"], capture_output=True, text=True)
+    return r.returncode == 0, r.stdout.strip().splitlines()[-1] if r.stdout else r.stderr.strip()
 
 
 @check("JAX sees the GPU")
@@ -103,13 +115,6 @@ def _():
 def _():
     path = shutil.which("ffmpeg")
     return path is not None, path or "not on PATH"
-
-
-@check("GPU free for training (gpu_check.sh train)", required=False)
-def _():
-    script = pathlib.Path(__file__).with_name("gpu_check.sh")
-    r = subprocess.run(["bash", str(script), "train"], capture_output=True, text=True)
-    return r.returncode == 0, r.stdout.strip().splitlines()[-1] if r.stdout else r.stderr.strip()
 
 
 def main() -> int:

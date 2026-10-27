@@ -77,6 +77,7 @@ vla_layer/
 │   ├── download_checkpoints.py   # pre-fetch pi05_base / pi05_droid / pi05_libero
 │   ├── serve_pretrained.sh       # zero-shot pi05_droid / pi05_libero (smoke test)
 │   ├── latency_probe.py          # client: N infer() calls on dummy obs, latency stats
+│   ├── memory_test.py            # LoRA fit test on fake data: peak GPU memory per batch size
 │   ├── make_synthetic_dataset.py # fake OM-X LeRobot dataset for testing the pipeline
 │   ├── convert_rosbag_to_lerobot.py
 │   ├── inspect_dataset.py        # stats, plots, contact sheet of frames per episode
@@ -141,7 +142,7 @@ This builds and tests the whole openpi pipeline before any real data exists, so 
 | T2.6 | Wrapper scripts. `train.py` loads openpi's `scripts/train.py` as a module and calls `main(get_config(name))`. `compute_norm_stats.py` does the same with openpi's norm-stats routine. `serve.py` calls `openpi.policies.policy_config.create_trained_policy(cfg, ckpt_dir)` and runs it through `openpi.serving.websocket_policy_server.WebsocketPolicyServer(policy, port=8000)`. If upstream internals make this awkward, use the D14 fallback (fork branch). |
 | T2.7 | `make_synthetic_dataset.py`: writes about 20 fake episodes (random 224×224 images, smooth sinusoidal joint trajectories within limits, gripper steps) **using openpi's pinned `lerobot`**, with the exact feature schema from Phase 4. |
 | T2.8 | Dry run: synthetic dataset → norm stats → `pi05_omx_lora_debug` training → `serve.py` → `latency_probe.py` with an OM-X-shaped observation, which must return a `(10, 5)` array. |
-| T2.9 | **Memory test on the A30:** run `pi05_omx_lora` for 300 steps at batch 16 with `XLA_PYTHON_CLIENT_MEM_FRACTION=0.9`. Record peak memory and steps/s. Then try 32. If it runs out of memory, try 8, then raise the fraction to 0.95. Write the chosen batch size into the config. |
+| T2.9 | **Memory test on the A30** (`scripts/memory_test.py`: the real pi05_base LoRA model on openpi's FakeDataset, so it can run before T2.1–T2.8 exist): run `pi05_omx_lora` for 100–300 steps at batch 16 with `XLA_PYTHON_CLIENT_MEM_FRACTION=0.9`. Record peak memory and steps/s. Then try 32. If it runs out of memory, try 8, then raise the fraction to 0.95. Write the chosen batch size into the config. |
 | T2.10 | `tests/`: transforms round trip (absolute → delta → absolute gives back the original), `OMXInputs` output shapes and masks, and that state and action stay 5-D before padding. |
 
 **Exit:** the full pipeline runs on synthetic data, the batch size is fixed from the memory test, and the time per 1k steps is known.
