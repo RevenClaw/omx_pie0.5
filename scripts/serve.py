@@ -18,7 +18,8 @@ from omx_pi05 import openpi_scripts
 
 if __name__ == "__main__":
     if not any(a == "--port" or a.startswith("--port=") for a in sys.argv[1:]):
-        sys.argv.append(f"--port={os.environ.get('VLA_POLICY_PORT', '4000')}")
+        # Top-level option: must come before the `policy:checkpoint` subcommand, or tyro rejects it.
+        sys.argv.insert(1, f"--port={os.environ.get('VLA_POLICY_PORT', '4000')}")
     serve_policy = openpi_scripts.load("serve_policy")
     logging.basicConfig(level=logging.INFO, force=True)
     serve_policy.main(tyro.cli(serve_policy.Args))
