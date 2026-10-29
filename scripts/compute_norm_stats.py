@@ -9,12 +9,11 @@ Writes assets/<config>/<repo_id>/norm_stats.json. Re-run every time the dataset 
 
 import tyro
 
-import omx_pi05.train_configs  # noqa: F401  (registers the OM-X configs into openpi)
-from omx_pi05 import openpi_scripts
+from omx_pi05 import norm_stats
 
 
 def main(config_name: tyro.conf.Positional[str], max_frames: int | None = None) -> None:
-    openpi_scripts.load("compute_norm_stats").main(config_name, max_frames)
+    norm_stats.compute(config_name, max_frames)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,9 @@
-"""Load openpi's top-level scripts (scripts/*.py are not importable modules) so our wrappers can call their main()."""
+"""Load openpi's top-level scripts (scripts/*.py are not importable modules) so our wrappers can call their main().
+
+Caveat: a module loaded this way can't be re-imported by data-loader worker processes, so never hand a class or function
+*defined in the script* to a DataLoader (that broke compute_norm_stats; see omx_pi05/norm_stats.py). train.py and
+serve_policy.py are safe: their data pipelines only use classes from openpi's package and omx_pi05.
+"""
 
 import importlib.util
 import pathlib
