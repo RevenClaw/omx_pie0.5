@@ -75,8 +75,9 @@ def test_serving_outputs_round_trip_to_absolute():
     for t in data_cfg.data_transforms.outputs:
         x = t(x)
     assert x["actions"].shape == (H, 5)
-    np.testing.assert_allclose(x["actions"][:, :4], np.array(C.HOME) + 0.01, atol=1e-6)
-    np.testing.assert_allclose(x["actions"][:, 4], 1.0)
+    expected_joints = np.tile(np.array(C.HOME) + 0.01, (H, 1))  # every step: current pose + delta
+    np.testing.assert_allclose(x["actions"][:, :4], expected_joints, atol=1e-6)
+    np.testing.assert_allclose(x["actions"][:, 4], np.ones(H))
 
 
 def test_model_transforms_tokenize_and_pad():
