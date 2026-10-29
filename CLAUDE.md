@@ -17,6 +17,7 @@ against openpi. Log every training/eval run in `docs/experiments.md`. Postponed 
 - `scripts/` — `env.sh` (source first), setup/check scripts, `latency_probe.py`, `memory_test.py`, `make_synthetic_dataset.py`,
   wrappers `compute_norm_stats.py` / `train.py` / `serve.py` (call openpi's own scripts), `fake_policy_server.py` (no GPU).
 - `docs/phase2_report.md` — what Phase 2 built, which robot facts are real and what is faked.
+- `docs/LEARNING_GUIDE.md` — beginner-level explanation of Phases 0–2 and every design choice; keep it in sync.
 - `data/`, `checkpoints/` — gitignored.
 
 ## Environment
