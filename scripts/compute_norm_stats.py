@@ -13,7 +13,7 @@ import omx_pi05.train_configs  # noqa: F401  (registers the OM-X configs into op
 from omx_pi05 import openpi_scripts
 
 
-def main(config_name: str, max_frames: int | None = None) -> None:
+def main(config_name: tyro.conf.Positional[str], max_frames: int | None = None) -> None:
     openpi_scripts.load("compute_norm_stats").main(config_name, max_frames)
 
 

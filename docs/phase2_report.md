@@ -17,7 +17,7 @@ synthetic dry run have not been run yet**; they need the openpi env on the A30 s
 | `scripts/compute_norm_stats.py`, `train.py`, `serve.py` | Thin wrappers: register our configs, then run openpi's own tool. All openpi CLI flags work. `serve.py` defaults to port 4000. |
 | `scripts/make_synthetic_dataset.py` | Writes the **fake** dataset (details below) |
 | `scripts/fake_policy_server.py` | openpi websocket protocol with scripted **safe** chunks, for Phase 3. No GPU, no model. Tested locally: `(10, 5)` chunks, 103 ms with simulated latency. |
-| `tests/` | 15 tests: gripper mapping, constants vs. robot files, fake-server safety, transforms in the real openpi pipeline, configs, fake motions |
+| `tests/` | 22 tests: gripper mapping, constants vs. robot files, fake-server safety, transforms in the real openpi pipeline, configs, fake motions |
 | `scripts/env.sh` | Now also sets `HF_LEROBOT_HOME=vla_layer/data/lerobot` (where datasets live) |
 
 ## Real information used
@@ -68,7 +68,7 @@ training loop, norm stats and server, the dataset format (openpi's pinned LeRobo
 
 ```bash
 source scripts/env.sh
-python -m pytest tests -q                                     # all 15 should pass (constants test skips without low_level_controller)
+python -m pytest tests -q                                     # expect 15 passed, 7 skipped (the 7 constants checks need ../low_level_controller)
 python scripts/make_synthetic_dataset.py --overwrite          # CPU, ~1–3 min
 python scripts/compute_norm_stats.py pi05_omx_lora_debug      # CPU, writes assets/pi05_omx_lora_debug/local/omx_synthetic/
 bash scripts/gpu_check.sh train && python scripts/train.py pi05_omx_lora_debug --exp-name=dryrun --overwrite   # GPU, ~15 min

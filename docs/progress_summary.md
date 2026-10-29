@@ -44,7 +44,7 @@ Shareable page: https://claude.ai/artifact/KXtasZ7hLS5E7yFiKVdBe9 (private until
 | Data and training configs: joints as deltas, gripper absolute; 200-step debug and 30k-step configs | Built, server test pending |
 | Synthetic dataset generator | Built, server run pending |
 | Fake policy server (safe scripted chunks for the robot bridge, no GPU) | Built, live-tested |
-| Test suite | 15 tests: 11 pass locally, 4 need the openpi env |
+| Test suite | 22 tests: 15 pass on the server, 7 robot-file checks pass on the laptop |
 
 - **Real data used:** joint limits, servo limits, HOME and exit poses, gripper range, link lengths and safety rules, all read from the controller repo. 7 automated checks fail if any of them drifts.
 - **Synthetic (testing only):** fake motions, cartoon images, placeholder prompts, a 200-step test checkpoint, and a sine-wave test policy. All of it is replaced by teleop demos from Phase 4.

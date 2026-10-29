@@ -448,7 +448,7 @@ A mismatch here, like a stretched image or swapped colour channels, is a classic
   and this server needs no GPU and can run on the robot PC.
 - **Tested on 27 Oct:** the client received `(10, 5)` chunks moving gently from HOME (about 0.06 rad/s), with a 103 ms round trip.
 
-### 5.9 The tests (`tests/`, 15 tests)
+### 5.9 The tests (`tests/`, 22 tests)
 
 | File | Protects against |
 |---|---|
@@ -459,7 +459,7 @@ A mismatch here, like a stretched image or swapped colour channels, is a classic
 | `test_train_configs.py` | Configs not registered, or drifting from the memory-tested model |
 | `test_synthetic_dataset.py` | Fake motions leaving the limits or exceeding 0.5 rad/s |
 
-**On the laptop:** 11 pass. The 4 that need openpi skip there, and run on the server.
+**On the laptop:** 11 pass; the openpi-dependent ones skip. **On the server:** 15 pass; the 7 constants checks skip (no `low_level_controller` there).
 
 ---
 
