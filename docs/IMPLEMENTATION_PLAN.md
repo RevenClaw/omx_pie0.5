@@ -9,8 +9,8 @@ Source material:
 - `../low_level_controller/CLAUDE.md` and `../low_level_controller/docs/` — the robot side
 - The openpi repository (`main`, checked 2026-10-26). See [Verified facts](#verified-facts-about-openpi-checked-2026-10-26).
 
-Status (2026-10-27): **Phase 0 ✅, Phase 1 ✅ on the server (124 ms p95), T2.9 ✅ (batch 16 fits). Phase 2 code written, see
-`docs/phase2_report.md`; the server dry run (T2.8) is not yet done.** openpi pinned at `215abfb` (2026-08-24).
+Status (2026-10-27): **Phase 0 ✅, Phase 1 ✅ on the server (124 ms p95), T2.9 ✅ (batch 16 fits). Phase 2 ✅ (2026-10-29): the server dry run
+(T2.8) returned (10, 5) chunks from our own checkpoint; see `docs/phase2_report.md`. Next: Phase 3.** openpi pinned at `215abfb` (2026-08-24).
 
 ---
 
@@ -199,7 +199,7 @@ Train ACT (and then SmolVLA, if you want) with `lerobot-train` on the same data 
 |---|---|
 | T6.1 | Point `pi05_omx_lora` at `local/omx_<task>` and run `scripts/gpu_check.sh && uv run scripts/compute_norm_stats.py --config-name pi05_omx_lora`. **Re-run it every time the data changes.** |
 | T6.2 | Train headless, inside `tmux`: `XLA_PYTHON_CLIENT_MEM_FRACTION=0.9 uv run scripts/train.py pi05_omx_lora --exp-name=omx_<task>_v1`. Turn on wandb to log the loss and grad norm. |
-| T6.3 | Checkpoints every 5k steps, each with its `assets/` (norm stats). Keep all of them, because the best one is chosen on the robot, not by loss (flow-matching loss correlates poorly with success). |
+| T6.3 | **Timing (measured 2026-10-29): ~3.9 s/step at batch 16 → 30k steps ≈ 32–33 h; one checkpoint ≈ 10.7 GiB.** Evaluate the 5k/10k/15k checkpoints (replay test, then robot) as they appear and stop early if they're good. With ~50 demos, 30k steps is ~43 passes over the data. Checkpoints every 5k steps, each with its `assets/` (norm stats). Keep all of them, because the best one is chosen on the robot, not by loss (flow-matching loss correlates poorly with success). |
 | T6.4 | If it runs out of memory: lower the batch (16 → 8 → 4), set the memory fraction to 0.95, and make sure nothing else is on the GPU (`gpu_check.sh`). |
 | T6.5 | Log the run in `experiments.md`: dataset hash, openpi commit, config, batch, steps, wall time. |
 

@@ -81,7 +81,7 @@ Chunking matters for two reasons. It makes motion smoother, and it means the mod
 execute part of a chunk while the next one is being computed.
 
 **Flow matching / denoising.** The action expert starts from random noise and refines it, over **10 small steps**, into a clean action
-chunk, a bit like sharpening a blurry image. That is why inference takes about 95 ms: those 10 steps run on the GPU.
+chunk, a bit like sharpening a blurry image. Those 10 steps are a large part of the ~120–150 ms each inference takes.
 
 **State.** The robot's current situation as numbers: here `[j1, j2, j3, j4, gripper]`. Joints are in radians. The gripper is scaled to
 0 = open, 1 = closed.
@@ -249,8 +249,7 @@ XLA_PYTHON_CLIENT_PREALLOCATE=false python scripts/serve_policy.py --env=DROID -
 |---|---|
 | First call | 18.2 s (one-time JIT compile) |
 | Round trip p50 / p95 / p99 | 123.6 / 124.4 / 124.6 ms (max 125.7). Extremely steady. |
-| Model (vision + language + 10 denoising steps) | 95 ms |
-| Server processing (transforms, tokenizing, normalizing, GPU copies) | ~27 ms |
+| Server total (model + processing) | ~123 ms |
 | Network (localhost) | ~1 ms |
 
 **Is 124 ms fast enough? Yes, because of chunking:**
@@ -261,7 +260,7 @@ XLA_PYTHON_CLIENT_PREALLOCATE=false python scripts/serve_policy.py --env=DROID -
 - Latency only affects how *quickly the policy reacts* to changes, such as someone moving the cube.
 - Ways to lower it further are documented in `FUTURE_TODO.md`:
   - wired Ethernet
-  - profiling the 27 ms of server processing
+  - profiling where the server time goes
   - fewer denoising steps
   - skipping the unused third camera slot
   - real-time chunking

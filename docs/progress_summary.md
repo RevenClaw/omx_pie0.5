@@ -32,7 +32,7 @@ Shareable page: https://claude.ai/artifact/KXtasZ7hLS5E7yFiKVdBe9 (private until
 ## Phase 1 — π0.5 running live, measured, and proven trainable ✅
 
 - **Live inference:** served the released `pi05_droid` checkpoint on port 4000.
-- **Latency:** 95 ms model + ~27 ms server processing + ~1 ms network = **124 ms p95**. That's well inside the 333 ms the arm spends executing one chunk (5 steps at 15 Hz), so the next chunk is ready about 200 ms early. A one-time 18 s compile happens on the first call only.
+- **Latency:** **124 ms p95** round trip (network ~1 ms; the rest is server-side). Our own fine-tuned checkpoint measured **149 ms** in Phase 2. That's well inside the 333 ms the arm spends executing one chunk (5 steps at 15 Hz), so the next chunk is ready about 180–200 ms early. A one-time 18 s compile happens on the first call only.
 - **Fine-tuning fits:** the real `pi05_base` weights with our LoRA setup (rank 16 / 32, 10-step chunks) peaked at **17.72 GiB at batch 16**. Batch 32 is estimated at about 23.4 GiB, so batch 16 is the setting.
 
 ## Phase 2 — Teaching openpi to speak OpenMANIPULATOR-X 🔄 (code complete, server run pending)

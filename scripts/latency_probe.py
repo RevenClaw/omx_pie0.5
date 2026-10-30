@@ -85,8 +85,8 @@ def main() -> int:
     net = [t - s for t, s in zip(total, server)]
     print(f"\n⏱️  {args.n} calls, env={args.env}")
     print(f"   round trip      {pct(total)}")
-    print(f"   model           {pct(model)}")
     print(f"   server total    {pct(server)}")
+    print(f"   model dispatch  {pct(model)}   (openpi times the call before the GPU finishes; real compute is inside server total)")
     print(f"   network + I/O   {pct(net)}")
     p95 = np.percentile(total, 95)
     print(f"\n{'✅' if p95 < 150 else '⚠️ '} p95 round trip {p95:.0f} ms (target < 150 ms ≈ 2 steps at 15 Hz). Log it in docs/experiments.md.")

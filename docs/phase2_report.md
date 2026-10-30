@@ -1,6 +1,10 @@
 # Phase 2 report: OM-X integration code (2026-10-27)
 
-**Status:** code written. The tests that don't need openpi pass on the dev laptop (11 passed). **The openpi-dependent tests and the
+**Status (2026-10-29): ✅ Phase 2 complete.** The server dry run returned `(10, 5)` chunks from our own checkpoint. Fixes made during the run:
+`compute_norm_stats` moved into `omx_pi05/norm_stats.py` (worker processes couldn't import a class from openpi's script),
+`serve.py` puts `--port` before the subcommand, and one test compared mismatched array shapes.
+
+**Original status:** code written. The tests that don't need openpi pass on the dev laptop (11 passed). **The openpi-dependent tests and the
 synthetic dry run have not been run yet**; they need the openpi env on the A30 server (see "How to run it" below).
 
 ## What was built
