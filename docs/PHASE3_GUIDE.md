@@ -5,7 +5,12 @@ This continues `LEARNING_GUIDE.md` (Phases 0–2) in the same style: **what** we
 (`vla_bridge.py`, `vla_safety.py`, `config/vla_bridge.yaml`, `launch/vla_bridge.launch.py`, `test/test_vla_safety.py`; robot-repo known issue #10).
 Checked so far: 11 unit tests; an off-ROS run of the real node logic (ROS stubbed, simulated arm) against the fake server: a normal run and
 all six fault drills behave as designed. That run found two bugs, both fixed: the speed cap was per *step* instead of per *second* (0.58 rad/s
-seen after late steps were dropped), and a lost server connection resumed silently. Next: rung 1 on mock hardware.
+seen after late steps were dropped), and a lost server connection resumed silently.
+**Review (2026-10-30), fixed:** a terminal disable could race the control loop; a stalled server left the bridge unable to recover
+without a restart; the next-chunk request ignored the 15 Hz tick delay; Ctrl+C could crash the shutdown; camera-conversion errors
+were reported as a lost server; `typing_extensions` was missing from the Dockerfile; this guide said the JTC uses splines (it
+interpolates linearly with position-only points). Re-tested off-ROS with a lagging simulated arm: normal runs at 150/200/250 ms,
+all six drills, and recovery after `stall` and `disconnect`. Next: rung 1 on mock hardware.
 
 ---
 
@@ -49,7 +54,8 @@ code goes in `custom_package`, and the upstream driver packages are never modifi
 
 **`JointTrajectoryController` (JTC)**, which is what `arm_controller` is:
 - It takes a **trajectory**: a list of points (joint positions), each with a `time_from_start`.
-- It runs at **100 Hz** and **interpolates smoothly between points** (splines).
+- It runs at **100 Hz** and **interpolates between points**. With positions only (what we send) the interpolation is
+  **linear**: constant speed between points, small speed changes at each point. The servos' own motion profile softens those.
 - When a new trajectory arrives on its topic, it **replaces** the old one from "now" onward.
 - When it reaches the last point, it **holds that position**.
 
@@ -77,6 +83,11 @@ Instead, a separate worker thread asks for the **next** chunk while the arm is s
 - **Inference worker thread**: builds an observation, calls `client.infer()` over the network (it blocks for ~150 ms), and puts the
   resulting chunk in a shared buffer.
 - A lock protects the shared data: the latest joint state, the latest images, and the current chunk.
+- A second lock serializes everything that can command the arm: the control tick, the enable service, the e-stop topic and the
+  `e`/`d` terminal keys (which run on the main thread). Without it, a disable could land between a tick's checks and its
+  publish, and the arm would keep moving after the hold.
+- If the server stops answering mid-request, the worker would wait forever. On a chunk timeout the control loop closes the
+  connection (in a background thread, so it never blocks the loop or the e-stop), and the worker reconnects and warms up again.
 
 **Why a separate inference thread:** a blocking network call inside the control timer would freeze the whole node, including the safety checks.
 
@@ -100,16 +111,21 @@ ignores images, so Phase 3 can be fully tested now.
 - Step `k` of the chunk (k = 0…9) is meant for time `t_obs + (k+1)/15 s`.
 - **Steps in the past are dropped:** when a chunk arrives ~150 ms after `t_obs`, its first ~2 steps are already in the past. Executing
   them would make the arm lag behind the model's plan.
-- **When to request the next chunk:** when the remaining steps drop to `ceil(latency × 15) + 1`. At 150 ms that's 4 steps
-  (~270 ms) left. The new chunk arrives with time to spare, so the arm never runs dry.
-- A new chunk **replaces** the old one, and the JTC blends the switch smoothly. Joins can still look slightly jerky; a short
-  cross-fade, or later real-time chunking, can fix that (`FUTURE_TODO.md`).
+- **Steps due very soon are dropped too:** any step due less than half a period (33 ms) from now. The controller starts each
+  new trajectory from the arm's measured position, so a first point only a few ms away would force a lurch.
+- **When to request the next chunk:** when the remaining steps drop to `ceil(latency × 15) + 2`. The extra step covers the 15 Hz
+  tick (a request is sent at a tick, its result applied at a later one). At 150 ms that's 5 steps (~330 ms) left, so the arm never
+  runs dry. Requests are serial (one in flight), so the model runs at most ~1/latency times a second.
+- A new chunk **replaces** the old one from "now" onward. In the off-ROS test the joins were smooth (steady speed within 10% of the
+  planned sine, no plan ever running dry). On the real arm, check this at rung 4; if joins look jerky, a short cross-fade or later
+  real-time chunking can fix that (`FUTURE_TODO.md`).
 
 ### 3.4 Sending commands
 - **Arm:** the remaining (safe) steps of the chunk go out as **one multi-point** `trajectory_msgs/JointTrajectory` on
   `/arm_controller/joint_trajectory`, with `time_from_start = (k+1)/15 s`.
-  - *Why multi-point and not one point per tick:* with several points the JTC can plan smooth velocities through all of them. Single
-    points 66 ms apart make it accelerate and brake between every point, which means jerk and extra load on joint2.
+  - *Why multi-point and not one point per tick:* a one-point trajectory every tick makes the JTC restart from the measured position
+    each time and aim for a single target, which means stop-and-go motion, jerk and extra load on joint2. A multi-point trajectory
+    is one continuous path the JTC follows at 100 Hz, and it also keeps the arm moving if one tick is late.
 - **Gripper:** the model's gripper value is continuous, between 0 and 1. A **hysteresis** turns it into commands:
   - close when it rises above **0.6**,
   - open when it falls below **0.4**,
@@ -173,7 +189,7 @@ None of them depends on the model behaving well.
 | Rung | What | Arm | Passes when |
 |---|---|---|---|
 | 0 | **Unit tests** of `vla_safety.py` (pytest, no ROS): clamp, speed cap, jump check, stale-step dropping, hysteresis, NaN rejection | none | All pass |
-| 1 | **Mock hardware**: `ros2 launch custom_package open_manipulator_x_interactive.launch.py use_mock_hardware:=true` + fake server + bridge | **simulated** (ros2_control's mock hardware echoes commands back as state) | Smooth sine motion in RViz and `/joint_states`, speed ≤ 0.3 rad/s, holds when the server is killed |
+| 1 | **Mock hardware**: `ros2 launch custom_package open_manipulator_x_interactive.launch.py use_mock_hardware:=true` + fake server + bridge. The mock arm starts at HOME; the homing node's "torque service not available" errors are expected (there are no servos) | **simulated** (ros2_control's mock hardware echoes commands back as state) | Smooth sine motion in RViz and `/joint_states`, speed ≤ 0.3 rad/s, holds when the server is killed |
 | 2 | **Fault drills on mock hardware**, using the fake-server flags `--fault nan / jump / out_of_range / below_table / stall / disconnect` | simulated | Each leads to hold + disable with the right reason in `/vla_bridge/status`; `out_of_range` keeps running with joint3 clamped |
 | 3 | **Shadow mode on the real arm** | real, **not moving** | The preview path in RViz is the expected small sine around HOME |
 | 4 | **Live on the real arm** with the fake server at 0.3 rad/s, hand on the e-stop | real, moving slowly | Smooth motion; no joint2 overload; **kill the server → the arm stops within ~0.5 s**; e-stop topic works; gripper opens and closes on the 6 s toggle |
