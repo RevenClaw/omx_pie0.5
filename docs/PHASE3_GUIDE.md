@@ -1,7 +1,12 @@
 # Phase 3 Guide: `vla_bridge`, connecting the model to the real arm
 
 This continues `LEARNING_GUIDE.md` (Phases 0–2) in the same style: **what** we build, **why** each choice is made, and **how** we test it.
-**Status (2026-10-30): written, not yet run on ROS or hardware.** Code in `low_level_controller/open_manipulator/custom_package/`
+**Status (2026-11-01): ✅ Phase 3 done.** Run in ROS with the fake policy server: rung 1 on mock hardware works (smooth motion in
+RViz), the fault drills were tested, and the shadow switch behaves as designed (shadow on: the arm stays still, only the preview path
+appears; shadow off: the arm moves). Latency from the robot PC (rung 5) is not logged yet. Phase 4 not started.
+Plain-language notes on how it all fits: `PERSONAL_UNDERSTANDING.md`.
+
+**History (2026-10-30): written, then tested off-ROS.** Code in `low_level_controller/open_manipulator/custom_package/`
 (`vla_bridge.py`, `vla_safety.py`, `config/vla_bridge.yaml`, `launch/vla_bridge.launch.py`, `test/test_vla_safety.py`; robot-repo known issue #10).
 Checked so far: 11 unit tests; an off-ROS run of the real node logic (ROS stubbed, simulated arm) against the fake server: a normal run and
 all six fault drills behave as designed. That run found two bugs, both fixed: the speed cap was per *step* instead of per *second* (0.58 rad/s
@@ -10,7 +15,7 @@ seen after late steps were dropped), and a lost server connection resumed silent
 without a restart; the next-chunk request ignored the 15 Hz tick delay; Ctrl+C could crash the shutdown; camera-conversion errors
 were reported as a lost server; `typing_extensions` was missing from the Dockerfile; this guide said the JTC uses splines (it
 interpolates linearly with position-only points). Re-tested off-ROS with a lagging simulated arm: normal runs at 150/200/250 ms,
-all six drills, and recovery after `stall` and `disconnect`. Next: rung 1 on mock hardware.
+all six drills, and recovery after `stall` and `disconnect`.
 
 ---
 
@@ -104,7 +109,9 @@ These keys and conversions are the **contract** with `omx_pi05` on the server (D
 the bridge's key names and gripper formula match `omx_pi05`, like the existing constants test.
 
 **Before the cameras exist** (they're Phase 4), the parameter `fake_images:=true` sends black 224×224 frames. The fake server
-ignores images, so Phase 3 can be fully tested now.
+ignores images for its motion, so Phase 3 can be fully tested without cameras.
+**Update 2026-11-01:** the RealSense D435 front camera is wired in and `fake_images` now defaults to `false` (wrist: black frames
+until a wrist camera exists). See `low_level_controller/docs/known_issues.md` #11 and `commands_guide.md` Step 5.
 
 ### 3.3 The chunk buffer and latency compensation
 - Each chunk is tagged with the **time of the observation** it was computed from, `t_obs`.
@@ -221,5 +228,6 @@ service), and `known_issues.md`, marked **"not yet tested on hardware"** until r
 the correct `GripperCommand` action, but Phase 4 recording depends on the gripper working, and it's a small fix.
 
 ## 9. Phase 3 exit criteria
+**✅ Closed 2026-11-01** (see the status at the top).
 Rungs 0–4 pass on hardware. Rung 5 is logged. The docs are updated. Then Phase 4 (cameras, teleop, recording) starts. When the real
 model is ready (Phase 8), it plugs into exactly this bridge: only `server_host` changes, from the fake server to the real one.

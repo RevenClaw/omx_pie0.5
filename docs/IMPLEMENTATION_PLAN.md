@@ -10,7 +10,8 @@ Source material:
 - The openpi repository (`main`, checked 2026-10-26). See [Verified facts](#verified-facts-about-openpi-checked-2026-10-26).
 
 Status (2026-10-27): **Phase 0 ✅, Phase 1 ✅ on the server (124 ms p95), T2.9 ✅ (batch 16 fits). Phase 2 ✅ (2026-10-29): the server dry run
-(T2.8) returned (10, 5) chunks from our own checkpoint; see `docs/phase2_report.md`. Next: Phase 3.** openpi pinned at `215abfb` (2026-08-24).
+(T2.8) returned (10, 5) chunks from our own checkpoint; see `docs/phase2_report.md`. Phase 3 ✅ (2026-11-01): `vla_bridge` runs in ROS
+with the fake server (mock hardware, fault drills, shadow/live switch); see `docs/PHASE3_GUIDE.md`. Next: Phase 4.** openpi pinned at `215abfb` (2026-08-24).
 
 ---
 
@@ -148,7 +149,7 @@ This builds and tests the whole openpi pipeline before any real data exists, so 
 
 **Exit:** the full pipeline runs on synthetic data, the batch size is fixed from the memory test, and the time per 1k steps is known.
 
-### Phase 3 — `vla_bridge` on the robot `[R]` (in `low_level_controller/custom_package`)
+### Phase 3 — `vla_bridge` on the robot `[R]` (in `low_level_controller/custom_package`) ✅ 2026-11-01
 
 The bridge is what keeps the arm safe. Build it and test it against a **fake policy server** before any model is involved.
 
@@ -169,7 +170,7 @@ The bridge is what keeps the arm safe. Build it and test it against a **fake pol
 | Task | Detail |
 |---|---|
 | T4.1 | **Fix known_issues #1** (gripper path in `joint_commander`) and confirm that `GripperCommand` works on hardware. Teleop recording depends on it. |
-| T4.2 | Cameras: one fixed front camera (C920 / RealSense in RGB mode) covering the whole workspace, and one small USB wrist camera on link 5. Run them with `usb_cam` or `v4l2_camera` at 640×480, 30 fps, **fixed exposure and white balance**. Mark the front camera's position on the table; it must never move. |
+| T4.2 | Cameras: one fixed front camera (C920 / RealSense in RGB mode) covering the whole workspace, and one small USB wrist camera on link 5. Run them with `usb_cam` or `v4l2_camera` at 640×480, 30 fps, **fixed exposure and white balance**. Mark the front camera's position on the table; it must never move. **Front camera started 2026-11-01:** RealSense D435 via `low_level_controller` `camera_front.launch.py`, 640×480 RGB at 15 Hz (the control rate; `color_profile:=640,480,30` if fresher frames are wanted), wired into `vla_bridge` and checked end to end with the fake server (`--save-images`). Wrist camera, fixed exposure/white balance: still to do. |
 | T4.3 | Teleop, best option first: a second OM-X as a torque-off leader (1:1 mapping) → GELLO-style leader → gamepad/keyboard. The leader node publishes the commanded joint positions, `/leader/joint_states`. **The action recorded at time t is the leader position at t.** |
 | T4.4 | Safety: a hardware e-stop that cuts motor power, and the Dynamixel Current Limit set below the factory value (EEPROM; use the same procedure as in `joint_offset_investigation.md`). |
 | T4.5 | Recorder launch: rosbag2 (mcap) of `/joint_states`, `/leader/joint_states`, `/arm_controller/controller_state`, both `image_raw` + `camera_info`, and `/episode` (a `std_msgs/String` JSON with `{task, episode_id, success}` published on start/stop). Optional extras for the later surprise monitor: Present Current and Velocity, if `dynamixel_hardware_interface` exposes current as a state interface (check its config; never call `get_dxl_data` on a running arm, issue #8). |

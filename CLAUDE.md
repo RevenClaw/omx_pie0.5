@@ -2,7 +2,7 @@
 
 Fine-tunes and serves Physical Intelligence's **π0.5** (openpi, JAX) for a 4-DoF ROBOTIS OpenMANIPULATOR-X.
 This repo runs on the **GPU server (NVIDIA A30, 24 GiB, shared with other users)**. It needs **no ROS**.
-The robot side (ROS 2 Jazzy, `arm_controller`, the planned `vla_bridge` node) lives in the sibling repo `../low_level_controller`
+The robot side (ROS 2 Jazzy, `arm_controller`, the `vla_bridge` node) lives in the sibling repo `../low_level_controller`
 (read its `CLAUDE.md` for robot facts: joint limits, gripper units, home pose).
 
 Read `docs/IMPLEMENTATION_PLAN.md` first. It holds the decisions (D1–D14), the phases with exit criteria, and the facts verified
@@ -18,7 +18,9 @@ against openpi. Log every training/eval run in `docs/experiments.md`. Postponed 
   wrappers `compute_norm_stats.py` / `train.py` / `serve.py` (call openpi's own scripts), `fake_policy_server.py` (no GPU).
 - `docs/phase2_report.md` — what Phase 2 built, which robot facts are real and what is faked.
 - `docs/LEARNING_GUIDE.md` — beginner-level explanation of Phases 0–2 and every design choice; keep it in sync.
-- `docs/PHASE3_GUIDE.md` — the same for Phase 3 (`vla_bridge` design, safety layer, test ladder).
+- `docs/PHASE3_GUIDE.md` — the same for Phase 3 (`vla_bridge` design, safety layer, test ladder). Phase 3 ✅ 2026-11-01.
+- `docs/PERSONAL_UNDERSTANDING.md` — the user's plain-language notes on Phase 3 (who plans vs. checks vs. moves, fake server,
+  fault drills, shadow mode).
 - `data/`, `checkpoints/` — gitignored.
 
 ## Environment

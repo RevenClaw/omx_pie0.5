@@ -35,7 +35,7 @@ Shareable page: https://claude.ai/artifact/KXtasZ7hLS5E7yFiKVdBe9 (private until
 - **Latency:** **124 ms p95** round trip (network ~1 ms; the rest is server-side). Our own fine-tuned checkpoint measured **149 ms** in Phase 2. That's well inside the 333 ms the arm spends executing one chunk (5 steps at 15 Hz), so the next chunk is ready about 180–200 ms early. A one-time 18 s compile happens on the first call only.
 - **Fine-tuning fits:** the real `pi05_base` weights with our LoRA setup (rank 16 / 32, 10-step chunks) peaked at **17.72 GiB at batch 16**. Batch 32 is estimated at about 23.4 GiB, so batch 16 is the setting.
 
-## Phase 2 — Teaching openpi to speak OpenMANIPULATOR-X 🔄 (code complete, server run pending)
+## Phase 2 — Teaching openpi to speak OpenMANIPULATOR-X ✅ (server dry run 2026-10-29: `(10, 5)` chunks, 149 ms p95)
 
 | Component | Status |
 |---|---|
@@ -50,11 +50,17 @@ Shareable page: https://claude.ai/artifact/KXtasZ7hLS5E7yFiKVdBe9 (private until
 - **Synthetic (testing only):** fake motions, cartoon images, placeholder prompts, a 200-step test checkpoint, and a sine-wave test policy. All of it is replaced by teleop demos from Phase 4.
 - **Next step:** on the A30, run tests → synthetic dataset → norm stats → 200-step training → serve → confirm `(10, 5)` action chunks.
 
+## Phase 3 — `vla_bridge`: the policy drives the arm safely ✅ (2026-11-01)
+
+- **Bridge node** on the robot PC: sends observations to the policy server, checks every plan (NaN, joint limits, 0.3 rad/s speed cap,
+  start jump, fingertip ≥ 2 cm, watchdogs, e-stop) and forwards it to `arm_controller`. Starts disabled; any fault holds the arm.
+- **Tested in ROS with the fake policy server:** smooth motion on mock hardware, the fault drills, and shadow mode (the arm stays
+  still while the planned path is shown in RViz).
+
 ## Ahead
 
 | Phase | Goal |
 |---|---|
-| 3 | `vla_bridge` on the real arm with the fake policy server |
 | 4–5 | Cameras, teleop, e-stop; 50 demos of the first task |
 | 5b | ACT baseline to validate the data |
 | 6–7 | Real π0.5 LoRA fine-tune (30k steps), offline replay check |

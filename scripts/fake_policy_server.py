@@ -3,6 +3,10 @@
     python scripts/fake_policy_server.py                  # port $VLA_POLICY_PORT (4000), ~150 ms simulated latency
     python scripts/fake_policy_server.py --latency-ms 0
     python scripts/fake_policy_server.py --fault nan --fault-after 10   # misbehave after 10 s (Phase 3 fault drills)
+    python scripts/fake_policy_server.py --save-images /tmp/omx_images  # also save the received camera images as PNG
+
+Every 5 s it logs the images it received (shape, dtype, brightness; a warning if not (224, 224, 3) uint8) and the request rate,
+so camera input from vla_bridge can be checked without a model. The images do not affect the scripted motion.
 
 Needs only numpy, websockets and openpi-client (plus omx_pi05 constants), so it also runs on the robot PC.
 Each chunk is (horizon, 5) in the model's output format: absolute joints j1..j4 (rad) + gripper in [0, 1] (0 = open).
@@ -48,6 +52,31 @@ BELOW_TABLE = np.array([0.6, 1.0, 0.8, 1.0])  # inside the joint limits, fingert
 PAST_J3_LIMIT = np.array([C.HOME[0], C.HOME[1], 2.0, C.HOME[3]])  # joint3 limit is 1.55
 
 
+def describe_images(obs: dict) -> str:
+    parts = []
+    for key in (C.OBS_FRONT, C.OBS_WRIST):
+        name = key.split("/")[-1]
+        img = obs.get(key)
+        if img is None:
+            parts.append(f"{name}: MISSING ⚠️")
+            continue
+        img = np.asarray(img)
+        ok = img.shape == (C.IMAGE_SIZE, C.IMAGE_SIZE, 3) and img.dtype == np.uint8
+        note = "" if ok else f" ⚠️ expected ({C.IMAGE_SIZE}, {C.IMAGE_SIZE}, 3) uint8"
+        content = "black" if img.max() == 0 else f"mean {img.mean():.0f}"
+        parts.append(f"{name}: {img.shape} {img.dtype} {content}{note}")
+    return ", ".join(parts)
+
+
+def save_images(obs: dict, directory: str, index: int) -> None:
+    from PIL import Image  # pillow comes with openpi-client
+
+    os.makedirs(directory, exist_ok=True)
+    for key in (C.OBS_FRONT, C.OBS_WRIST):
+        if key in obs:
+            Image.fromarray(np.asarray(obs[key], dtype=np.uint8)).save(os.path.join(directory, f"{key.split('/')[-1]}_{index:05d}.png"))
+
+
 def make_chunk(state: np.ndarray, t0: float, horizon: int, fps: int, max_vel: float, goal=None, clamp=True) -> np.ndarray:
     lo, hi = C.joint_limits_array(C.JOINT_LIMIT_MARGIN) if clamp else (np.full(4, -np.inf), np.full(4, np.inf))
     q = np.clip(np.asarray(state[:4], dtype=np.float64), lo, hi)
@@ -70,6 +99,8 @@ def main() -> None:
     parser.add_argument("--fault", default="none",
                         choices=["none", "nan", "jump", "out_of_range", "below_table", "stall", "disconnect"])
     parser.add_argument("--fault-after", type=float, default=10.0, help="seconds of normal behaviour before the fault")
+    parser.add_argument("--save-images", default="", help="directory to save received images as PNG (every --save-every s)")
+    parser.add_argument("--save-every", type=float, default=2.0, help="seconds between saved image pairs")
     args = parser.parse_args()
 
     async def handler(websocket: ws_server.ServerConnection) -> None:
@@ -77,6 +108,7 @@ def main() -> None:
         packer = msgpack_numpy.Packer()
         await websocket.send(packer.pack({"fake_policy": True, "horizon": args.horizon, "fps": args.fps}))
         t_start, n_requests = None, 0
+        last_log, n_since_log, last_save, n_saved = 0.0, 0, 0.0, 0
         async for message in websocket:
             t_recv = time.monotonic()
             obs = msgpack_numpy.unpackb(message)
@@ -85,6 +117,14 @@ def main() -> None:
                 await websocket.send(f"expected {C.OBS_STATE} of shape ({C.STATE_DIM},), got {state.shape}")
                 continue
             n_requests += 1
+            n_since_log += 1
+            if t_recv - last_log >= 5.0:
+                rate = f", {n_since_log / (t_recv - last_log):.1f} requests/s" if last_log else ""
+                log.info(f"📷 {describe_images(obs)}{rate}")
+                last_log, n_since_log = t_recv, 0
+            if args.save_images and t_recv - last_save >= args.save_every:
+                save_images(obs, args.save_images, n_saved)
+                last_save, n_saved = t_recv, n_saved + 1
             if n_requests == 2:  # the bridge's first call is a warmup; motion and --fault-after count from enabling
                 t_start = t_recv
             t_start = t_start or t_recv
