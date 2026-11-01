@@ -3,10 +3,11 @@
     python scripts/fake_policy_server.py                  # port $VLA_POLICY_PORT (4000), ~150 ms simulated latency
     python scripts/fake_policy_server.py --latency-ms 0
     python scripts/fake_policy_server.py --fault nan --fault-after 10   # misbehave after 10 s (Phase 3 fault drills)
-    python scripts/fake_policy_server.py --save-images /tmp/omx_images  # also save the received camera images as PNG
+    python scripts/fake_policy_server.py --save-images /tmp/omx_images  # also save received images (PNG) + states (CSV)
 
-Every 5 s it logs the images it received (shape, dtype, brightness; a warning if not (224, 224, 3) uint8) and the request rate,
-so camera input from vla_bridge can be checked without a model. The images do not affect the scripted motion.
+Every 5 s it logs the state it received (j1..j4 rad, gripper 0 open..1 closed), the images (shape, dtype, brightness; a warning
+if not (224, 224, 3) uint8) and the request rate, so the whole observation from vla_bridge can be checked without a model.
+--save-images also appends each saved pair's state and prompt to <dir>/observations.csv. Neither affects the scripted motion.
 
 Needs only numpy, websockets and openpi-client (plus omx_pi05 constants), so it also runs on the robot PC.
 Each chunk is (horizon, 5) in the model's output format: absolute joints j1..j4 (rad) + gripper in [0, 1] (0 = open).
@@ -32,6 +33,7 @@ import time
 
 import numpy as np
 import websockets.asyncio.server as ws_server
+import websockets.exceptions
 from openpi_client import msgpack_numpy
 
 from omx_pi05 import constants as C
@@ -68,6 +70,10 @@ def describe_images(obs: dict) -> str:
     return ", ".join(parts)
 
 
+def describe_state(state: np.ndarray) -> str:
+    return f"state [{', '.join(f'{v:+.3f}' for v in state[:4])} | grip {state[4]:.2f}]"
+
+
 def save_images(obs: dict, directory: str, index: int) -> None:
     from PIL import Image  # pillow comes with openpi-client
 
@@ -75,6 +81,14 @@ def save_images(obs: dict, directory: str, index: int) -> None:
     for key in (C.OBS_FRONT, C.OBS_WRIST):
         if key in obs:
             Image.fromarray(np.asarray(obs[key], dtype=np.uint8)).save(os.path.join(directory, f"{key.split('/')[-1]}_{index:05d}.png"))
+    csv_path = os.path.join(directory, "observations.csv")
+    new_file = not os.path.exists(csv_path)
+    with open(csv_path, "a") as f:
+        if new_file:
+            f.write("index,time,j1,j2,j3,j4,gripper,prompt\n")
+        state = np.asarray(obs[C.OBS_STATE], dtype=np.float64)
+        prompt = str(obs.get(C.PROMPT, "")).replace('"', "'")
+        f.write(f'{index},{time.time():.3f},{",".join(f"{v:.4f}" for v in state)},"{prompt}"\n')
 
 
 def make_chunk(state: np.ndarray, t0: float, horizon: int, fps: int, max_vel: float, goal=None, clamp=True) -> np.ndarray:
@@ -104,6 +118,12 @@ def main() -> None:
     args = parser.parse_args()
 
     async def handler(websocket: ws_server.ServerConnection) -> None:
+        try:
+            await serve_connection(websocket)
+        except websockets.exceptions.ConnectionClosed:  # e.g. the bridge restarted without a close handshake
+            log.info(f"👋 connection from {websocket.remote_address} dropped")
+
+    async def serve_connection(websocket: ws_server.ServerConnection) -> None:
         log.info(f"🔌 connection from {websocket.remote_address}")
         packer = msgpack_numpy.Packer()
         await websocket.send(packer.pack({"fake_policy": True, "horizon": args.horizon, "fps": args.fps}))
@@ -120,7 +140,7 @@ def main() -> None:
             n_since_log += 1
             if t_recv - last_log >= 5.0:
                 rate = f", {n_since_log / (t_recv - last_log):.1f} requests/s" if last_log else ""
-                log.info(f"📷 {describe_images(obs)}{rate}")
+                log.info(f"🤖 {describe_state(state)}  📷 {describe_images(obs)}{rate}")
                 last_log, n_since_log = t_recv, 0
             if args.save_images and t_recv - last_save >= args.save_every:
                 save_images(obs, args.save_images, n_saved)

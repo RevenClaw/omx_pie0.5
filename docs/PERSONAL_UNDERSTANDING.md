@@ -45,8 +45,8 @@ protocol, same port (4000), same reply shape `(10, 5)`. But there is no model an
 
 - **Motion:** slow sine waves around HOME (joint 1 ±0.2 rad, joint 3 ±0.1 rad, 20 s period); the gripper toggles every 6 s.
 - **Built-in safety:** each plan starts from the joint angles the bridge reports, moves ≤ 0.2 rad/s, stays 0.05 rad inside the limits.
-- **Ignores** the images and the prompt for its motion. It does check the images: every 5 s it logs their shape, type and brightness,
-  and `--save-images <dir>` saves them as PNG (used to verify the RealSense front camera, 2026-11-01).
+- **Ignores** the images and the prompt for its motion. It does check them: every 5 s it logs the received joint state and the images'
+  shape, type and brightness; `--save-images <dir>` saves the images as PNG plus the states in `observations.csv`.
 - **Delay:** waits 150 ms per reply, like our real checkpoint (`--latency-ms` changes it).
 - **Why it matters:** if the arm moves wrong with the fake server, the bug is in the bridge/controller chain, not in a model.
 
