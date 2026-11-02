@@ -19,6 +19,7 @@ from lerobot.common.datasets.lerobot_dataset import HF_LEROBOT_HOME, LeRobotData
 from openpi_client import image_tools
 
 from omx_pi05 import constants as C
+from omx_pi05.dataset import lerobot_features
 from omx_pi05.kinematics import forward_kinematics
 
 TASKS = ("pick up the cube and place it to the left", "pick up the cube and place it to the right")
@@ -33,12 +34,6 @@ class Args:
     episodes: int = 20
     seed: int = 0
     overwrite: bool = False
-
-
-def features() -> dict:
-    image = {"dtype": "image", "shape": (C.IMAGE_SIZE, C.IMAGE_SIZE, 3), "names": ["height", "width", "channel"]}
-    vec = {"dtype": "float32", "shape": (C.STATE_DIM,), "names": [*C.ARM_JOINTS, "gripper"]}
-    return {C.DS_FRONT: image, C.DS_WRIST: dict(image), C.DS_STATE: vec, C.DS_ACTION: dict(vec)}
 
 
 def sample_pose(rng: np.random.Generator) -> np.ndarray:
@@ -115,7 +110,7 @@ def main(args: Args) -> None:
         repo_id=args.repo_id,
         robot_type="openmanipulator_x",
         fps=C.FPS,
-        features=features(),
+        features=lerobot_features(),  # shared with convert_rosbag_to_lerobot.py
         image_writer_threads=8,
         image_writer_processes=2,
     )

@@ -13,12 +13,16 @@ against openpi. Log every training/eval run in `docs/experiments.md`. Postponed 
 - `third_party/openpi/` — **git submodule, pinned commit. Never edit it** (D14). If our wrappers can't reach something, use a fork branch.
 - `omx_pi05/` — our package, installed editable into openpi's venv: `constants.py` (robot facts, cited to low_level_controller;
   `tests/test_constants_match_robot.py` checks them), `gripper.py`, `kinematics.py`, `policy.py` (OMXInputs/OMXOutputs),
-  `data_config.py`, `train_configs.py` (configs registered into openpi's registry; add real datasets to `DATASETS`).
+  `data_config.py`, `train_configs.py` (configs registered into openpi's registry; add real datasets to `DATASETS`),
+  `dataset.py` (rosbag2 episode → aligned 15 Hz frames; LeRobot features; needs `rosbags`, installed by setup_server.sh).
 - `scripts/` — `env.sh` (source first), setup/check scripts, `latency_probe.py`, `memory_test.py`, `make_synthetic_dataset.py`,
-  wrappers `compute_norm_stats.py` / `train.py` / `serve.py` (call openpi's own scripts), `fake_policy_server.py` (no GPU).
+  wrappers `compute_norm_stats.py` / `train.py` / `serve.py` (call openpi's own scripts), `fake_policy_server.py` (no GPU),
+  `convert_rosbag_to_lerobot.py` (recordings → LeRobot dataset), `make_synthetic_bags.py` (fake recordings for testing it).
 - `docs/phase2_report.md` — what Phase 2 built, which robot facts are real and what is faked.
 - `docs/LEARNING_GUIDE.md` — beginner-level explanation of Phases 0–2 and every design choice; keep it in sync.
 - `docs/PHASE3_GUIDE.md` — the same for Phase 3 (`vla_bridge` design, safety layer, test ladder). Phase 3 ✅ 2026-11-01.
+- `docs/PHASE4_GUIDE.md` — Phase 4 plan: cameras, teleoperation, safety hardware, episode recorder, pilot conversion.
+- `docs/PHASE5_GUIDE.md` — the converter: input contract with the recorder, alignment/trim/checks, commands.
 - `docs/PERSONAL_UNDERSTANDING.md` — the user's plain-language notes on Phase 3 (who plans vs. checks vs. moves, fake server,
   fault drills, shadow mode).
 - `data/`, `checkpoints/` — gitignored.

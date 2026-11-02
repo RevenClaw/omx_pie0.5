@@ -31,10 +31,10 @@ cd "$OPENPI_DIR"
 GIT_LFS_SKIP_SMUDGE=1 uv sync
 GIT_LFS_SKIP_SMUDGE=1 uv pip install -e .
 
-# 4. Our package into the same env. Re-run this script after every `uv sync`:
-#    `uv sync` removes packages that are not in openpi's lockfile, including omx_pi05.
-echo "🔗 Installing omx_pi05 into the openpi env"
-uv pip install -e "$VLA_ROOT"
+# 4. Our package into the same env, plus rosbags (pure-Python rosbag2 reader for convert_rosbag_to_lerobot.py, no ROS).
+#    Re-run this script after every `uv sync`: it removes packages that are not in openpi's lockfile, including these.
+echo "🔗 Installing omx_pi05 and rosbags into the openpi env"
+uv pip install -e "$VLA_ROOT" "rosbags==0.11.9"
 
 echo "✅ Setup done. Next:"
 echo "   source scripts/env.sh"

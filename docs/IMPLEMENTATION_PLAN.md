@@ -167,6 +167,8 @@ The bridge is what keeps the arm safe. Build it and test it against a **fake pol
 
 ### Phase 4 — Data collection setup `[R]`
 
+Detailed plan, decisions to make first (teleop device, wrist camera, first task) and test ladder: `docs/PHASE4_GUIDE.md`.
+
 | Task | Detail |
 |---|---|
 | T4.1 | **Fix known_issues #1** (gripper path in `joint_commander`) and confirm that `GripperCommand` works on hardware. Teleop recording depends on it. |
@@ -180,9 +182,11 @@ The bridge is what keeps the arm safe. Build it and test it against a **fake pol
 
 ### Phase 5 — Dataset conversion and validation `[S]`
 
+T5.1/T5.2/T5.4 written and tested on synthetic and real-`ros2 bag record` bags (2026-11-02): `scripts/convert_rosbag_to_lerobot.py`, `omx_pi05/dataset.py`. How it works and the commands: `docs/PHASE5_GUIDE.md`. Alignment: nearest message for state and images, latest-before for the action; the gap check runs only on the kept (idle-trimmed) part, not "half a period" (a 15 Hz camera sampled on a 15 Hz grid is up to a whole period old with latest-before).
+
 | Task | Detail |
 |---|---|
-| T5.1 | `convert_rosbag_to_lerobot.py`: read bags with the pure-Python **`rosbags`** library (no ROS install needed on the server). Resample every stream to a 15 Hz grid using the latest previous message by header stamp, and **reject frames whose skew is more than half a period**. Images go BGR → RGB → `resize_with_pad(224)`. Write with **openpi's pinned `lerobot`**: `LeRobotDataset.create(repo_id="local/omx_<task>", fps=15, robot_type="openmanipulator_x", features=...)`, then `add_frame()` per step and `save_episode()` per episode. |
+| T5.1 | `convert_rosbag_to_lerobot.py`: read bags with the pure-Python **`rosbags`** library (no ROS install needed on the server). Resample every stream to a 15 Hz grid by header stamp (nearest message for state and images, latest-before for the action), trim idle ends, and **skip episodes with a gap longer than 0.2 s** in the kept part. Images go BGR/RGB → RGB → `resize_with_pad(224)`. ✅ 2026-11-02, see `PHASE5_GUIDE.md`. Write with **openpi's pinned `lerobot`**: `LeRobotDataset.create(repo_id="local/omx_<task>", fps=15, robot_type="openmanipulator_x", features=...)`, then `add_frame()` per step and `save_episode()` per episode. |
 | T5.2 | Features: `observation.images.front` and `observation.images.wrist` are (224, 224, 3) image; `observation.state` is (5,) float32; `action` is (5,) float32 (leader joints in rad plus leader gripper normalized); `task` is the prompt. Optional: `observation.current` (5,) and `observation.velocity` (5,). |
 | T5.3 | `inspect_dataset.py`: per-dimension min/max/quantiles, state vs action plots for each episode, a contact sheet of front and wrist frames at t = 0, mid and end (catches swapped cameras or flipped images), and a gripper histogram (should be bimodal near 0 and 1). |
 | T5.4 | Dataset hash (episode list + converter git SHA). Record it in `experiments.md`; the norm stats are tied to it. |
