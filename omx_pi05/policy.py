@@ -2,6 +2,8 @@
 
 Used for both training (after the dataset repack) and serving (directly on what the robot client sends):
     {"observation/front_image": uint8 (224,224,3), "observation/wrist_image": ..., "observation/state": (5,), "prompt": str}
+There is no wrist camera for now (wrist_camera=False): the wrist slot is zeros and masked out, so the model ignores it, and
+"observation/wrist_image" may be sent (it is ignored) or left out.
 """
 
 import dataclasses
@@ -36,13 +38,20 @@ def _parse_image(image) -> np.ndarray:
 
 @dataclasses.dataclass(frozen=True)
 class OMXInputs(transforms.DataTransformFn):
-    """front → base_0_rgb, wrist → left_wrist_0_rgb, right_wrist_0_rgb = zeros (masked out for pi0/pi0.5)."""
+    """front → base_0_rgb; right_wrist_0_rgb = zeros, masked out for pi0/pi0.5.
+
+    wrist_camera=False (default, no wrist camera yet): left_wrist_0_rgb is also zeros and masked out, whatever the data holds.
+    wrist_camera=True: wrist → left_wrist_0_rgb, unmasked. Training and serving must use the same setting.
+    """
 
     model_type: _model.ModelType
+    wrist_camera: bool = False
 
     def __call__(self, data: dict) -> dict:
         front = _parse_image(data[C.OBS_FRONT])
-        wrist = _parse_image(data[C.OBS_WRIST])
+        wrist = _parse_image(data[C.OBS_WRIST]) if self.wrist_camera else np.zeros_like(front)
+        # openpi masks padding images for pi0/pi0.5 but not pi0-FAST.
+        padding_mask = np.True_ if self.model_type == _model.ModelType.PI0_FAST else np.False_
         inputs = {
             "state": np.asarray(data[C.OBS_STATE], dtype=np.float32),
             "image": {
@@ -52,9 +61,8 @@ class OMXInputs(transforms.DataTransformFn):
             },
             "image_mask": {
                 "base_0_rgb": np.True_,
-                "left_wrist_0_rgb": np.True_,
-                # openpi masks padding images for pi0/pi0.5 but not pi0-FAST.
-                "right_wrist_0_rgb": np.True_ if self.model_type == _model.ModelType.PI0_FAST else np.False_,
+                "left_wrist_0_rgb": np.True_ if self.wrist_camera else padding_mask,
+                "right_wrist_0_rgb": padding_mask,
             },
         }
         if "actions" in data:  # training only

@@ -6,6 +6,9 @@ Continues `PHASE3_GUIDE.md` in the same style: **what** we build, **why**, and *
 feeds `vla_bridge`, and the fake server confirmed that frames and joint angles arrive together (robot-repo known issue #11);
 T4.1 gripper fix (mock-tested, real arm pending, issue #1); **T4.6 recorder and T4.8 quick check built** and tested on mock hardware
 with stand-in camera/teleop publishers, its output accepted by the converter (issue #13; usage: `commands_guide.md` Step 5b).
+**Data source (2026-11-05):** scripted YOLO demos + a few leader-arm demos, see `DATASET_PLAN.md` (changes Q1). The scripted part
+is built (simulation-tested); procedure: `low_level_controller/docs/finetuning_procedure.md`.
+**Q2 decided 2026-11-13: front camera only for now.** The wrist view is masked in `omx_pi05` (`wrist_camera=False`).
 **Decisions still needed:** §3 (teleop device, wrist camera, first task). Teleop (T4.4) is the main missing piece.
 
 ---

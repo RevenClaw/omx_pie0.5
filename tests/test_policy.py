@@ -30,13 +30,29 @@ def dataset_sample():
 
 
 def test_inputs_shapes_and_masks():
-    out = OMXInputs(model_type=_model.ModelType.PI05)(make_omx_example())
+    out = OMXInputs(model_type=_model.ModelType.PI05, wrist_camera=True)(make_omx_example())
     assert out["state"].shape == (5,)
     assert set(out["image"]) == {"base_0_rgb", "left_wrist_0_rgb", "right_wrist_0_rgb"}
     assert all(im.shape == (224, 224, 3) and im.dtype == np.uint8 for im in out["image"].values())
     assert not out["image"]["right_wrist_0_rgb"].any()
     assert out["image_mask"] == {"base_0_rgb": True, "left_wrist_0_rgb": True, "right_wrist_0_rgb": False}
     assert "actions" not in out and out["prompt"] == "pick up the cube"
+
+
+def test_no_wrist_camera_masks_the_wrist_view():
+    sample = make_omx_example()  # holds a random wrist image: it must not reach the model
+    out = OMXInputs(model_type=_model.ModelType.PI05)(sample)  # default: no wrist camera
+    assert out["image_mask"] == {"base_0_rgb": True, "left_wrist_0_rgb": False, "right_wrist_0_rgb": False}
+    assert not out["image"]["left_wrist_0_rgb"].any() and out["image"]["base_0_rgb"].any()
+    del sample[C.OBS_WRIST]  # a client may leave the wrist image out entirely
+    assert OMXInputs(model_type=_model.ModelType.PI05)(sample)["image_mask"]["left_wrist_0_rgb"] == False  # noqa: E712
+
+
+def test_train_configs_use_no_wrist_camera():
+    cfg = get_config("pi05_omx_lora_debug")
+    assert cfg.data.wrist_camera is False
+    omx_inputs = cfg.data.create(cfg.assets_dirs, cfg.model).data_transforms.inputs[0]
+    assert isinstance(omx_inputs, OMXInputs) and omx_inputs.wrist_camera is False
 
 
 def test_inputs_parse_lerobot_images():

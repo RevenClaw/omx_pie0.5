@@ -41,7 +41,7 @@ class Args:
     include_failures: bool = False
     """Also convert episodes the operator marked success=false."""
     no_wrist: bool = False
-    """No wrist camera was recorded: write black wrist frames (the policy must then mask that view)."""
+    """No wrist camera was recorded: write black wrist frames (the policy masks that view by default)."""
     dry_run: bool = False
     """Read and check every episode, print the report, write nothing."""
     overwrite: bool = False
@@ -149,7 +149,7 @@ def main(args: Args) -> None:
     if len(tasks) > 1:
         print("   ⚠️  More than one task string. Intended? Each must match the run-time prompt exactly (plan D12).")
     if args.no_wrist:
-        print("   ⚠️  Wrist frames are black: the policy must mask the wrist view for training and serving (PHASE4_GUIDE Q2).")
+        print("   ℹ️  Wrist frames are black. The policy masks the wrist view by default (wrist_camera=False in omx_pi05).")
 
 
 if __name__ == "__main__":

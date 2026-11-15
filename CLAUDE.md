@@ -22,9 +22,11 @@ against openpi. Log every training/eval run in `docs/experiments.md`. Postponed 
 - `docs/LEARNING_GUIDE.md` — beginner-level explanation of Phases 0–2 and every design choice; keep it in sync.
 - `docs/PHASE3_GUIDE.md` — the same for Phase 3 (`vla_bridge` design, safety layer, test ladder). Phase 3 ✅ 2026-11-01.
 - `docs/PHASE4_GUIDE.md` — Phase 4 plan: cameras, teleoperation, safety hardware, episode recorder, pilot conversion.
+- `docs/FINETUNING_STAGES.md` — why v1 is pick-and-place (commands decompose into pick/place), what v1 is limited to, next stages.
+- `docs/DATASET_PLAN.md` — data source plan: scripted YOLO demos (bulk) + leader-arm demos (recoveries), LLM role, stages.
 - `docs/PHASE5_GUIDE.md` — the converter: input contract with the recorder, alignment/trim/checks, commands.
-- `docs/PERSONAL_UNDERSTANDING.md` — the user's plain-language notes on Phase 3 (who plans vs. checks vs. moves, fake server,
-  fault drills, shadow mode).
+- `docs/PERSONAL_UNDERSTANDING.md` — the user's plain-language notes: Phase 3 (who plans vs. checks vs. moves, fake server,
+  fault drills, shadow mode) and fine-tuning (what is recorded, episodes, recorder, converter).
 - `data/`, `checkpoints/` — gitignored.
 
 ## Environment
@@ -38,7 +40,9 @@ against openpi. Log every training/eval run in `docs/experiments.md`. Postponed 
 
 ## Conventions (fixed, see the plan's D4–D10)
 - State/action 5-D `[j1, j2, j3, j4, gripper]`. Joints in rad (absolute in the dataset, trained as deltas). Gripper normalized, 0 = open, 1 = closed.
-- Cameras `front` → `base_0_rgb`, `wrist` → `left_wrist_0_rgb`. RGB uint8, 224×224 via `openpi_client.image_tools.resize_with_pad`.
+- Cameras: `front` → `base_0_rgb`. **No wrist camera for now:** `left_wrist_0_rgb` is zeros and masked out (`wrist_camera=False` in
+  `OMXInputs` / `LeRobotOMXDataConfig`; set it to True in both training and serving once a wrist camera exists). RGB uint8,
+  224×224 via `openpi_client.image_tools.resize_with_pad`.
 - 15 Hz, `action_horizon = 10`, execute 5 steps, then re-query.
 - Terminal output style: emoji status prints (✅ ❌ ⚠️ 📥), matching `low_level_controller`.
 - Don't commit unless asked. Commits end with the `Co-Authored-By` line.

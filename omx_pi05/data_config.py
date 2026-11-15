@@ -21,6 +21,9 @@ DELTA_ACTION_MASK = _transforms.make_bool_mask(4, -1)  # (True, True, True, True
 
 @dataclasses.dataclass(frozen=True)
 class LeRobotOMXDataConfig(_config.DataConfigFactory):
+    # False: the wrist view is masked out (no wrist camera yet; the dataset's wrist frames are black). See OMXInputs.
+    wrist_camera: bool = False
+
     @override
     def create(self, assets_dirs: pathlib.Path, model_config: _model.BaseModelConfig) -> _config.DataConfig:
         # Training only: dataset feature names → the keys the robot client sends at inference.
@@ -39,7 +42,7 @@ class LeRobotOMXDataConfig(_config.DataConfigFactory):
         )
         # Training *and* serving. push() prepends outputs, so serving runs AbsoluteActions, then OMXOutputs.
         data_transforms = _transforms.Group(
-            inputs=[OMXInputs(model_type=model_config.model_type)],
+            inputs=[OMXInputs(model_type=model_config.model_type, wrist_camera=self.wrist_camera)],
             outputs=[OMXOutputs()],
         ).push(
             inputs=[_transforms.DeltaActions(DELTA_ACTION_MASK)],
