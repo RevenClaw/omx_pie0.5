@@ -35,7 +35,7 @@ All of it was read from `low_level_controller`. **`tests/test_constants_match_ro
 | Gripper joint | `gripper_left_joint`, GripperActionController (action only) | same |
 | Joint limits (rad) | j1 [−π, π], j2 [−1.82, 1.5], j3 [−1.5, 1.55], j4 [−1.7, 1.97] | `open_manipulator_description/urdf/open_manipulator_x/open_manipulator_x_arm.urdf.xacro` (j2/j3 widened in issue #2) |
 | Servo position limits (ticks) | j1 0–4095, j2 862–3506, j3 712–3094, j4 715–3340. The URDF limits lie inside them. | `open_manipulator_description/ros2_control/open_manipulator_x_position.ros2_control.xacro` |
-| Gripper range | open 0.019 m, close −0.010 m (URDF [−0.011, 0.020]) | `custom_package/joint_commander.py`, URDF |
+| Gripper range | open 0.019 m, close −0.010 m (URDF [−0.011, 0.020]; this unit's inverted gripper is mirrored in the driver config, issue #15) | `custom_package/joint_commander.py`, URDF |
 | HOME | `[0.6090, -1.3622, 1.3898, -0.0154]` | `open_manipulator_bringup/config/open_manipulator_x/initial_positions.yaml` |
 | Min-stress exit pose | `[0.4633, -1.8190, 1.4972, 0.4019]`. With torque off, j2 rests at −1.839, outside its limit. | `custom_package/interactive_homing_node.py`, `known_issues.md` #2 |
 | Link lengths | JOINT1_X 0.012, JOINT2_Z 0.0595, upper arm (0.024, 0.128), forearm 0.124, gripper 0.126 m | `custom_package/ee_commander.py` |

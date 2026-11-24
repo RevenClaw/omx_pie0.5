@@ -321,7 +321,7 @@ Once the pipeline works on fake data, any later problem must be in the real **da
 | Joints | `joint1..joint4`, controller at 100 Hz | `hardware_controller_manager.yaml` |
 | Joint limits (rad) | j1 [−π, π], j2 [−1.82, 1.5], j3 [−1.5, 1.55], j4 [−1.7, 1.97] | URDF xacro (j2/j3 widened in known issue #2) |
 | Servo EEPROM limits | inside these, so the URDF limits are the binding ones | ros2_control xacro |
-| Gripper | open 0.019 m, closed −0.010 m | `joint_commander.py` |
+| Gripper | open 0.019 m, closed −0.010 m (this unit's inverted gripper is mirrored in the driver config) | `joint_commander.py` |
 | HOME | `[0.6090, −1.3622, 1.3898, −0.0154]` | `initial_positions.yaml` |
 | Exit pose | `[0.4633, −1.8190, 1.4972, 0.4019]` | `interactive_homing_node.py` |
 | Link lengths | used for forward kinematics | `ee_commander.py` |

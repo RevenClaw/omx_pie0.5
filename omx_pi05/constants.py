@@ -45,6 +45,8 @@ def ticks_to_rad(ticks: float) -> float:
 # ---------------------------------------------------------------------------
 # Gripper (custom_package/joint_commander.py; URDF prismatic limit is [−0.011, 0.020] m)
 # ---------------------------------------------------------------------------
+# ROBOTIS's stock convention; this arm's inverted gripper is mirrored in the driver config (robot repo, known issue #15). Must equal
+# joint_commander.GRIPPER_OPEN_M / GRIPPER_CLOSE_M (tests/test_constants_match_robot.py).
 GRIPPER_OPEN_M = 0.019  # commanded "open"
 GRIPPER_CLOSE_M = -0.010  # commanded "close" (= ros2_control initial_value)
 GRIPPER_URDF_LIMITS_M = (-0.011, 0.020)

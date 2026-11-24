@@ -38,13 +38,20 @@ def lora_model() -> pi0_config.Pi0Config:
     )
 
 
-def lora_config(name: str, repo_id: str, **overrides) -> _config.TrainConfig:
+# Datasets recorded WITH the wrist D435 (guided_demo, since 2026-11-23): trained and served with the wrist view unmasked.
+WRIST_DATASETS = {
+    "pick_place_2cam": "local/omx_pick_place_2cam",
+}
+
+
+def lora_config(name: str, repo_id: str, wrist_camera: bool = False, **overrides) -> _config.TrainConfig:
     model = lora_model()
     kwargs = dict(
         name=name,
         model=model,
         data=LeRobotOMXDataConfig(
             repo_id=repo_id,
+            wrist_camera=wrist_camera,
             base_config=_config.DataConfig(prompt_from_task=True, action_sequence_keys=(C.DS_ACTION,)),
         ),
         weight_loader=weight_loaders.CheckpointWeightLoader(PI05_BASE_PARAMS),
@@ -67,6 +74,7 @@ def lora_config(name: str, repo_id: str, **overrides) -> _config.TrainConfig:
 
 CONFIGS = [
     *(lora_config(f"pi05_omx_lora_{key}", repo_id) for key, repo_id in DATASETS.items()),
+    *(lora_config(f"pi05_omx_lora_{key}", repo_id, wrist_camera=True) for key, repo_id in WRIST_DATASETS.items()),
     # Pipeline dry run on the synthetic dataset: 200 steps, checkpoints at 100 and 199.
     lora_config(
         "pi05_omx_lora_debug",
