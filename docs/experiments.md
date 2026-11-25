@@ -1,6 +1,7 @@
 # Experiments log
 
 One entry per environment change, training run or evaluation. Newest first.
+Hash = b52239a9a842
 
 ## Environment
 
