@@ -20,15 +20,18 @@ against openpi. Log every training/eval run in `docs/experiments.md`. Postponed 
   Needs `rosbags==0.11.9` in the venv (`uv pip install`; setup_server.sh installs it).
 - **Training:** config `pi05_omx_lora_pick_place_2cam` (in `WRIST_DATASETS`), exp `pick_place_2cam_v1`, batch 16, 30k steps planned (~4 s/step),
   checkpoints every 5k in `checkpoints/pi05_omx_lora_pick_place_2cam/pick_place_2cam_v1/{5000,…,25000}`; loss ≈ 0.002 from ~17k steps (60 episodes
-  = little data, overfitting is likely: judge by robot trials, not loss). Training was stopped after 25000 to test on the robot; resume with the
+  = little data; overfitting confirmed by robot trials: 5000 > 20000/25000). Training was stopped after 25000; resume with the
   same command + `--resume`, never `--overwrite`.
 - **Serve:** `bash scripts/gpu_check.sh serve && python scripts/serve.py policy:checkpoint --policy.config=pi05_omx_lora_pick_place_2cam
   --policy.dir=checkpoints/pi05_omx_lora_pick_place_2cam/pick_place_2cam_v1/25000` (port 4000; the robot PC reaches it with
   `ssh -N -L 4000:localhost:4000 shradul@iras-hub`). Training and serving do not fit on the A30 together.
-- **Open issue (robot repo known issue #16):** first live run: the gripper flipped close → open and the user stopped it. Formulas in
-  `dataset.py` and the bridge agree (`tests/test_bridge_contract.py`), so it is probably the model's gripper output. The bridge now has
-  `-p log_gripper:=true` (works in shadow mode) to print the model's raw gripper values per chunk. Next: compare checkpoints 20000/25000 and
-  inspect the demo gripper action in the bags here. Robot-run results go into `docs/experiments.md` (Robot evaluations table).
+- **Live runs of checkpoint 25000 (2026-11-25, robot repo `docs/policy_runs.md`, 6 runs, no clean success yet):** the gripper flip (known issue #16)
+  was a **bridge bug**, not the model: the model plans the close a few steps ahead in every chunk and the bridge reopened at each new chunk
+  (fixed in `GripperHysteresis`, `upcoming`). Remaining failures: it grasps 0.5-1 cm lower than the demos (-0.044..-0.048 vs median -0.038 m,
+  fingers touch the table; bridge floor `min_z` -0.043 + `min_z_hold`), and after a missed grasp (gripper fully closed, never seen in the data
+  because failed episodes are excluded) it freezes. User's trials: **checkpoint 5000 works better than 20000/25000** (overfitting 60 episodes,
+  loss flat from ~17k): evaluate 5k/10k/15k next; add a validation split to the converter. Works best with the cube near the centre; motion less smooth
+  than the scripted demos (chunk replacement without blending; candidate: temporal ensembling).
 - **Project report plan:** problem statement = adapting π0.5 to a low-cost 4-DoF arm with scripted (YOLO + AprilTag) demonstrations only;
   evaluation = 9 prompts × 5–10 trials, failure types logged, baseline = the scripted pipeline (60 of 71 episodes successful).
 
